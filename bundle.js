@@ -11,6 +11,10 @@ let status = document.querySelector("#status");
 let body = document.querySelector("body");
 
 playButton.addEventListener("click", function(){
+    /**
+     * This function gets the welcome sequence
+     * @returns the welcome sequence
+     */
     async function getWelcome(){
         try{
             let response = await axios.get("http://cs.pugetsound.edu/~dchiu/cs240/api/simone/?cmd=start");
@@ -20,6 +24,11 @@ playButton.addEventListener("click", function(){
         }
     }
 
+    /**
+     * This function gets the sequence
+     * @param {The length of the sequence and the number of rounds to be played} rounds 
+     * @returns The entire sequence
+     */
     async function getSequence(rounds){
         try{
             let response = await axios.get("http://cs.pugetsound.edu/~dchiu/cs240/api/simone/?cmd=getSolution&rounds=" + rounds);
@@ -28,14 +37,14 @@ playButton.addEventListener("click", function(){
             console.log(err);
         }
     }
+
+    /**
+     * This function returns the sequence
+     * @returns The sequence
+     */
     async function theSeq(){
         let response = await getSequence(numOfRounds.value);
         return response;
-    }
-
-    async function shorterSeq(len){
-        let response = await getSequence(numOfRounds.value);
-        response = response.slice(0,len-1);
     }
 
     /**
@@ -160,98 +169,132 @@ playButton.addEventListener("click", function(){
         let theSequence = await theSeq();
         let theShortSeq = [];
         let arr = [];
-        for(let i=1; i<=numOfRounds.value;i++){
-            theShortSeq = await shorterSeq(i);
-            await round(i, theSequence);
-            if(arr == theShortSeq){
-                playSound("nextRound.wav", 800);
-                changeStatus("Good job! Prepare for the next round.", 800);
-                status.innerHTML = "Round " + i+1 + " of " + numOfRounds.value;
-            }if(arr != theShortSeq){
-                break;
-            }
-        }
-        if(arr == theSequence){
-            status.innerHTML = "Yay you win!";
-            body.backgroundColor = "#2e6bf1";
-            new Audio("sounds/win.mp3").play();
-        }
+        let button = []; // the array of the buttons clicked
+        let i = 1; // the rounds counter
+        theShortSeq = theSequence.slice(0,i); // gets the array of the sequence for each round
+        let shortLen = theShortSeq.length;
+        console.log("the entire: " + theSequence);
+        let len = theShortSeq.length;
+        await playSequence(theSequence, SOLUTION_DELAY, i); // play the i'th round
+
         /**
-         * This function plays 1 round of the game
-         * @param {The length of the round} theLen
-         * @param {The pattern to be played} pattern
+         * This function checks the status of the game. This function is called every time the user clicks on the 
+         * buttons
          */
-        async function round(theLen, pattern){
+        async function checkGameStatus(){
             arr = [];
-            let stat = "";
-            let len = theLen-1;
-            let button = [];
-            await playSequence(pattern, SOLUTION_DELAY, theLen);
-            for(let i=0;i<theLen;i++){
-                let clickedButton = "";
-                if(button.length<theLen){
-                    redSq.addEventListener("click", function(){
-                        clickedButton = "R";
-                        new Audio("sounds/red.wav").play();
-                        button = buildArray(clickedButton);
-                        if(button[i] === pattern[i]){
-                            status.innerHTML = "So far so good! " + len + " more to go!";
-                        }if(button[i] !== pattern[i]){
-                            status.innerHTML = "Incorrect! You lose!";
-                            body.style.backgroundColor = "#FF69B4";
-                            playSound("wrong.wav", 800);
-                            playSound("lose.wav", 800);
-                        }
-                        len--;
-                    });
-                    blueSq.addEventListener("click", function(){
-                        clickedButton = "B";
-                        new Audio("sounds/blue.wav").play();
-                        button = buildArray(clickedButton);
-                            if(button[i] === pattern[i]){
-                                let theMessage = "So far so good! " + len + " more to go!";
-                                status.innerHTML = theMessage;
-                            }if(button[i] !== pattern[i]){
-                            status.innerHTML = "Incorrect! You lose!";
-                            body.style.backgroundColor = "#FF69B4";
-                            playSound("wrong.wav", 800);
-                            playSound("lose.wav", 800);
-                        }
-                        len--;
-                    });
-                    greenSq.addEventListener("click", function(){
-                        clickedButton = "G";
-                        new Audio("sounds/green.wav").play();
-                        button = buildArray(clickedButton);
-                        if(button[i] === pattern[i]){
-                            status.innerHTML = "So far so good! " + len + " more to go!";
-                        }if(button[i] !== pattern[i]){
-                            status.innerHTML = "Incorrect! You lose!";
-                            body.style.backgroundColor = "#FF69B4";
-                            playSound("wrong.wav", 800);
-                            playSound("lose.wav", 800);
-                        }
-                        len--;
-                    });
-                    yellowSq.addEventListener("click", function(){
-                        clickedButton = "Y";
-                        new Audio("sounds/yellow.wav").play();
-                        button = buildArray(clickedButton);
-                        if(button[i] === pattern[i]){
-                            status.innerHTML = "So far so good! " + len + " more to go!";
-                        }if(button[i] !== pattern[i]){
-                            status.innerHTML = "Incorrect! You lose!";
-                            body.style.backgroundColor = "#FF69B4";
-                            playSound("wrong.wav", 800);
-                            playSound("lose.wav", 800);
-                        }
-                        len--; 
-                    });
-                }else{
-                    break;
+            if(button.length != shortLen){
+                if(button[i] != theShortSeq[i]){
+                    console.log("check status, dif len, wrong: " + theShortSeq);
+                    console.log("check status, dif len, wrong: " + button);
+                    status.innerHTML = "Incorrect! You lose!";
+                    body.style.backgroundColor = "#FF69B4";
+                    await playSound("wrong.wav", 800);
+                    await playSound("lose.wav", 800);
+                }if(button[i] == theShortSeq[i]){
+                    console.log("check status, dif len, right: " + theShortSeq);
+                    console.log("check status, dif len, right: " + button);
+                    len -= 1;
+                    await changeStatus("So far so good! " + len + " more to go!", 800);
+                }
+            }if(button.length == shortLen){
+                if(button[i] != theShortSeq[i]){
+                    console.log("check status, same len, wrong: " + theShortSeq);
+                    console.log("check status, dif len, wrong: " + button);
+                    status.innerHTML = "Incorrect! You lose!";
+                    body.style.backgroundColor = "#FF69B4";
+                    await playSound("wrong.wav", 800);
+                    await playSound("lose.wav", 800);
+                }if(button[i] == theShortSeq[i]){
+                    console.log("check status, same len, right: " + theShortSeq);
+                    console.log("check status, dif len, right: " + button);
+                    await playSound("nextRound.wav", 800);
+                    await changeStatus("Good job! Prepare for the next round.", 800);
+                    await changeStatus("Round " + i + " of " + numOfRounds.value, 800);
                 }
             }
         }
+
+        /**
+         * The event listeners that move the game forward
+         */
+        redSq.addEventListener("click", function(){
+            let clickedButton = "R";
+            new Audio("sounds/red.wav").play();
+            button = buildArray(clickedButton);
+            checkGameStatus();
+            console.log("clicked buttons: " + button);
+            if(button == theSequence){
+                status.innerHTML = "Yay you win!";
+                body.backgroundColor = "#2e6bf1";
+                new Audio("sounds/win.mp3").play();
+            }if(button.length == shortLen){
+                button = [];
+                i++;
+                theShortSeq = theSequence.slice(0,i); // gets the array of the sequence for each round
+                shortLen = theShortSeq.length;
+                len = shortLen;
+                playSequence(theSequence, SOLUTION_DELAY, i); // play the i'th round
+            }
+        });
+        blueSq.addEventListener("click", function(){
+            let clickedButton = "B";
+            new Audio("sounds/blue.wav").play();
+            button = buildArray(clickedButton);
+            checkGameStatus();
+            console.log("clicked buttons: " + button);
+            if(button == theSequence){
+                status.innerHTML = "Yay you win!";
+                body.backgroundColor = "#2e6bf1";
+                new Audio("sounds/win.mp3").play();
+            }if(button.length == shortLen){
+                button = [];
+                i++;
+                theShortSeq = theSequence.slice(0,i); // gets the array of the sequence for each round
+                shortLen = theShortSeq.length;
+                len = shortLen;
+                playSequence(theSequence, SOLUTION_DELAY, i); // play the i'th round
+            }
+        });
+        greenSq.addEventListener("click", function(){
+            let clickedButton = "G";
+            new Audio("sounds/green.wav").play();
+            button = buildArray(clickedButton);
+            checkGameStatus();
+            console.log("clicked buttons: " + button);
+            if(button == theSequence){
+                status.innerHTML = "Yay you win!";
+                body.backgroundColor = "#2e6bf1";
+                new Audio("sounds/win.mp3").play();
+            }if(button.length == shortLen){
+                button = [];
+                i++;
+                theShortSeq = theSequence.slice(0,i); // gets the array of the sequence for each round
+                shortLen = theShortSeq.length;
+                len = shortLen;
+                playSequence(theSequence, SOLUTION_DELAY, i); // play the i'th round
+            }
+        });
+        yellowSq.addEventListener("click", function(){
+            let clickedButton = "Y";
+            new Audio("sounds/yellow.wav").play();
+            button = buildArray(clickedButton);
+            checkGameStatus();
+            console.log("clicked buttons: " + button);
+            if(button == theSequence){
+                status.innerHTML = "Yay you win!";
+                body.backgroundColor = "#2e6bf1";
+                new Audio("sounds/win.mp3").play();
+            }if(button.length == shortLen){
+                button = [];
+                i++;
+                theShortSeq = theSequence.slice(0,i); // gets the array of the sequence for each round
+                shortLen = theShortSeq.length;
+                len = shortLen;
+                playSequence(theSequence, SOLUTION_DELAY, i); // play the i'th round
+            }
+        });
+
         /**
          * This function adds a color to the array that will be compared to the original 
          * array
@@ -259,19 +302,19 @@ playButton.addEventListener("click", function(){
          * array
          * @returns the array that is built
          */
-        function buildArray(button){
+        function buildArray(theButton){
             let color = "";
-            if(button == "R"){
+            if(theButton == "R"){
                 color = "R";
-            }if(button == "B"){
+            }if(theButton == "B"){
                 color = "B";
-            }if(button == "G"){
+            }if(theButton == "G"){
                 color = "G";
-            }if(button == "Y"){
+            }if(theButton == "Y"){
                 color = "Y";
             }
-            arr.push(color);
-            return arr;
+            button.push(color);
+            return button;
         }
     }
     /**
